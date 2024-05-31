@@ -200,6 +200,19 @@ class L10n_pe_cpe_summary(models.Model):
 
         json_values = self._create_values()
 
+        # guardar el json en un archivo
+        attachment = self.env['ir.attachment'].create({
+            'res_model': self._name,
+            'res_id': self.id,
+            'type': 'binary',
+            'name': '%s.json' % self.name,
+            'datas': base64.b64encode(json_values.encode('utf-8')),
+            'mimetype': 'application/json',
+        })
+
+        #agregar mensaje al resumen
+        self.message_post(body=_('Resumen de diario de boletas generado'), attachment_ids=[attachment.id])
+
         url = self.company_id.l10n_pe_cpe_summary_url_lycet+'/api/v1/summary/send'
         response = self._post_request_lycet_api(url, json_values)
         if response.get('error'):
@@ -212,6 +225,7 @@ class L10n_pe_cpe_summary(models.Model):
         self.write({'state': 'sent',
                     'send_date': fields.Datetime.now(),
                     'ticket': response.get('sunatResponse').get('ticket')})
+        
         return True
 
     def action_void(self):
@@ -230,6 +244,12 @@ class L10n_pe_cpe_summary(models.Model):
             error_code = response.get('sunatResponse').get('error').get('code')
             error_message = response.get('sunatResponse').get('error').get('message')
             raise UserError('Error %s: %s' % (error_code, error_message))
+        
+        if response.get('code') == '99':
+            raise UserError('Error %s: %s' % (response.get('cdrResponse'), response.get('description')))
+
+        if response.get('code') != '0':
+            raise UserError('Error  Desconocido%s: %s' % (str(response)))
 
         attachment = self.env['ir.attachment'].create({
                 'res_model': self._name,
@@ -243,7 +263,7 @@ class L10n_pe_cpe_summary(models.Model):
         # update account.edi.document
         
         for line in self.summary_line_ids:
-            account_edi_document = self.env['account.edi.document'].search([('move_id', '=', line.id)], limit=1)
+            account_edi_document = self.env['account.edi.document'].search([('move_id', '=', line.move_id.id)], limit=1)
             if not account_edi_document:
                 edi_format = self.env['account.edi.format'].search([('code', '=', 'pe_ubl_2_1')], limit=1)
                 if not edi_format:
