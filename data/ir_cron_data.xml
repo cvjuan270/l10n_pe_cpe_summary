@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="l10n_pe_cpe_summary" model="ir.sequence">
+            <field name="name">Resumen Diario de Boletas</field>
+            <field name="code">l10n_pe_cpe.summary</field>
+            <field name="prefix">RC-%(year)s%(month)s%(day)s-</field>
+            <field name="implementation">no_gap</field>
+            <field name="padding">5</field>
+        </record>
+
+        <!-- Cron job to send the summary to the SUNAT -->
+        <record id="ir_cron_l10n_pe_cpe_summary_send" model="ir.cron">
+            <field name="name">Send CPE Summary</field>
+            <field name="model_id" ref="model_l10n_pe_cpe_summary"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_create_summary()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="doall">False</field>
+            <field name="active">True</field>
+        </record>
+
+        <record id="ir_cron_l10n_pe_cpe_summary_verify" model="ir.cron">
+            <field name="name">Verify CPE Summary</field>
+            <field name="model_id" ref="model_l10n_pe_cpe_summary"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_verify_summary()</field>
+            <field name="interval_number">4</field>
+            <field name="interval_type">hours</field>
+            <field name="numbercall">-1</field>
+            <field name="doall">False</field>
+            <field name="active">True</field>
+        </record>
+
+    </data>
+</odoo>

@@ -90,7 +90,7 @@ class L10n_pe_cpe_summary(models.Model):
             ('state', '=', 'posted'),
             ('edi_state', 'in', ['to_send',None]),
             ('company_id', '=', self.company_id.id),
-            ('journal_id', '=', self.journal_ids.ids),
+            ('journal_id', 'in', self.journal_ids.ids),
             ('l10n_latam_document_type_id', '=', document_type_id.id),
             ('invoice_date', '>=', self.start_date),
             ('invoice_date', '<=', self.end_date),
@@ -246,6 +246,7 @@ class L10n_pe_cpe_summary(models.Model):
             raise UserError('Error %s: %s' % (error_code, error_message))
         
         if response.get('code') == '99':
+            self.message_post(body='Error %s: %s' % (response.get('cdrResponse'), response.get('description')))
             raise UserError('Error %s: %s' % (response.get('cdrResponse'), response.get('description')))
 
         if response.get('code') != '0':
@@ -259,6 +260,7 @@ class L10n_pe_cpe_summary(models.Model):
                 'datas': response.get('cdrZip'),
                 'mimetype': 'application/zip',
             })
+
 
         # update account.edi.document
         
@@ -333,3 +335,40 @@ class L10n_pe_cpe_summary(models.Model):
             return response_json
         except JSONDecodeError as e:
             return {"error": str(Markup("%s<br/>%s") % (ERROR_MESSAGES["json_decode"], e))}
+
+    # -------------------------------------------------------------------------
+    # CRON
+    # -------------------------------------------------------------------------
+    
+    ## cron para crear resumen de boletas
+    def _cron_create_summary(self):
+        companies = self.env['res.company'].search([('country_id.code', '=', 'PE')])
+        for company in companies:
+            journals = company.l10n_pe_cpe_summary_journal_ids
+            if not journals:
+                journals = self.env['account.journal'].search([
+                    ('type', '=', 'sale'),
+                    ('l10n_latam_use_documents', '=', True),
+                    ('company_id', '=', company.id)
+                ])
+            if not journals:
+                continue
+            summarie = self.env['l10n_pe_cpe.summary'].create([
+                {
+                'start_date': datetime.datetime.now(peru_tz).strftime('%Y-%m-%d'),
+                'end_date': datetime.datetime.now(peru_tz).strftime('%Y-%m-%d'),
+                # 'send_date': datetime.datetime.now(peru_tz).strftime('%Y-%m-%d %H:%M:%S'),
+                'company_id': company.id,
+                'journal_ids': [(6, 0, journals.ids)],
+                }
+            ])
+            result = summarie.action_confirm()
+            if result and summarie.summary_line_ids:
+                summarie.action_send()
+
+    ## cron para verificar resumen de boletas
+    def _cron_verify_summary(self):
+        summaries = self.env['l10n_pe_cpe.summary'].search([('state', '=', 'generate'), ('ticket', '!=', False),( 'estate_sunat', 'not in', ['05', '07', '09','11'])])
+        for summary in summaries:
+            summary.action_verify()
+

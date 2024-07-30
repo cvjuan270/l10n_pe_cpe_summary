@@ -19,6 +19,8 @@
                                     <field name="l10n_pe_cpe_summary_url_lycet"/>
                                     <label for="l10n_pe_cpe_summary_url_lycet_token" class="col-md-5 o_light_label" />
                                     <field name="l10n_pe_cpe_summary_url_lycet_token"/>
+                                    <label for="l10n_pe_cpe_summary_journal_ids" class="col-md-5 o_light_label" />
+                                    <field name="l10n_pe_cpe_summary_journal_ids" widget="many2many_tags"/>
                                 </div>
                             </div>
                         </div>

@@ -9,6 +9,7 @@
     'category': '',
     'depends': ['base', 'account', 'l10n_pe'],
     "data": [
+        "data/ir_cron_data.xml",
         "views/l10n_pe_cpe_summary_views.xml",
         "security/ir.model.access.csv",
         "views/res_config_settings_views.xml"
