@@ -368,7 +368,7 @@ class L10n_pe_cpe_summary(models.Model):
 
     ## cron para verificar resumen de boletas
     def _cron_verify_summary(self):
-        summaries = self.env['l10n_pe_cpe.summary'].search([('state', '=', 'generate'), ('ticket', '!=', False),( 'estate_sunat', 'not in', ['05', '07', '09','11'])])
+        summaries = self.env['l10n_pe_cpe.summary'].search([('state', '=', 'sent'), ('ticket', '!=', False),( 'estate_sunat', 'not in', ['05', '07', '09','11'])])
         for summary in summaries:
             summary.action_verify()
 
